@@ -23,6 +23,12 @@ Shortcuts = (options) ->
   @initialize.apply(@, arguments)
   @delegateShortcuts()
 
+getKeyAndScope = (shortcut) ->
+  match = shortcut.match(/^(\S+)\s*(.*)$/)
+  shortcutKey = match[1]
+  scope = if match[2] == "" then "all" else match[2]
+  return [shortcutKey, scope]
+
 _.extend Shortcuts.prototype, Backbone.Events,
   initialize: ->
   delegateShortcuts: ->
@@ -30,11 +36,14 @@ _.extend Shortcuts.prototype, Backbone.Events,
     for shortcut, callback of @shortcuts
       method = @[callback] unless _.isFunction(callback)
       throw new Error("Method #{callback} does not exist") unless method
-      match = shortcut.match(/^(\S+)\s*(.*)$/)
-      shortcutKey = match[1]
-      scope = if match[2] == "" then "all" else match[2]
+      [shortcutKey, scope] = getKeyAndScope(shortcut, callback)
       method = _.bind(method, @)
       key(shortcutKey, scope, method)
+  undelegateShortcuts: ->
+    return unless @shortcuts
+    for shortcut, callback of @shortcuts
+      [shortcutKey, scope] = getKeyAndScope(shortcut, callback)
+      key.unbind(shortcutKey, scope)
 
 Backbone.Shortcuts = Shortcuts
 Backbone.Shortcuts.extend = Backbone.View.extend
